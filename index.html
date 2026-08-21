@@ -364,6 +364,13 @@ async function onSignedIn(){
   await loadLiveKB(false);
 }
 
+// 添付ファイル名に「（登録者名）」が埋め込まれるケースが確認されたための保険的な除去（多重防御）。
+// 例: 「●職員会議_公開ステップ管理_テンプレート（松村）.pdf」→「●職員会議_公開ステップ管理_テンプレート.pdf」
+function sanitizeText(s){
+  if(!s) return s;
+  return s.replace(/（[^（）]{1,12}）(?=\.(pdf|docx?|pptx?|xlsx?|png|jpg|jpeg)\b)/gi, "").trim();
+}
+
 async function sheetMeta(spreadsheetId){
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`;
   const res = await fetch(url, { headers:{ Authorization:`Bearer ${gToken}` } });
@@ -395,7 +402,7 @@ async function loadLiveKB(forceRefresh){
       for(const r of rows){
         const q = r[1]||"";
         if(!q || HEADER_WORDS.has(q)) continue;
-        kb.faq.push({ fn: tab, q, state: r[2]||"", a: r[3]||"" });
+        kb.faq.push({ fn: tab, q: sanitizeText(q), state: r[2]||"", a: sanitizeText(r[3]||"") });
       }
     }
 
@@ -414,19 +421,20 @@ async function loadLiveKB(forceRefresh){
         for(const r of rows){
           const content = r[4]||"";
           if(!content || HEADER_WORDS.has(content)) continue;
-          kb.cases.push({ period:r[0]||"", theme: tab, service:r[3]||"", content });
+          kb.cases.push({ period:r[0]||"", theme: tab, service:r[3]||"", content: sanitizeText(content) });
         }
       }
     }
 
     const tplTabs = await sheetMeta(SHEET_TEMPLATES);
     for(const tab of tplTabs){
-      // B列(登録者実名)・H列以降(顧客園名等)は取得しない。C〜G列のみ使用。
-      const rows = await sheetValues(SHEET_TEMPLATES, `${tab}!A2:G500`);
+      // B列(登録者実名)・H列以降(顧客園名等)は取得しない。
+      // E列(提案・仕様詳細)は添付ファイル名に登録者名が埋め込まれるケースが確認されたため使用しない。D列(目的・概要)のみ使用。
+      const rows = await sheetValues(SHEET_TEMPLATES, `${tab}!A2:F500`);
       for(const r of rows){
         const fn = r[2]||"";
         if(!fn || HEADER_WORDS.has(fn)) continue;
-        kb.templates.push({ fn, idea:[r[3],r[4]].filter(Boolean).join(" / "), scope:r[5]||"" });
+        kb.templates.push({ fn, idea: sanitizeText(r[3]||""), scope:r[5]||"" });
       }
     }
 
