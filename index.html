@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カタグルマ CS お助けアシスタント</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --ink:#1c2530; --muted:#66727f;
+    --line:#e2e6ea; --brand:#2f6df6; --brand-ink:#ffffff; --accent:#0f9d7a;
+    --chip:#eef2f7; --danger:#c0392b; --shadow:0 1px 3px rgba(20,30,45,.08),0 8px 24px rgba(20,30,45,.06);
+  }
+  @media (prefers-color-scheme: dark){:root{
+    --bg:#0f141a; --panel:#161d26; --panel2:#1c2530; --ink:#e8edf2; --muted:#9aa7b4;
+    --line:#28323d; --brand:#4b86ff; --chip:#1c2530; --shadow:0 1px 3px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+  }}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;line-height:1.7;font-size:15px}
+  a{color:var(--brand)}
+  .wrap{max-width:860px;margin:0 auto;padding:20px 16px 80px}
+  header{display:flex;align-items:center;gap:12px;padding:6px 2px 18px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--brand),#7aa2ff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px}
+  h1{font-size:18px;margin:0;font-weight:700}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:1px}
+  .spacer{flex:1}
+  .iconbtn{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 11px;color:var(--muted);cursor:pointer;font-size:13px}
+  .iconbtn:hover{color:var(--ink)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px}
+  label{font-size:12.5px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px}
+  textarea,select,input[type=text],input[type=password]{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:11px 12px;font-family:inherit;font-size:15px}
+  textarea{min-height:110px;resize:vertical}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:150px}
+  .examples{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
+  .chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--ink);cursor:pointer}
+  .chip:hover{border-color:var(--brand);color:var(--brand)}
+  .actions{display:flex;align-items:center;gap:12px;margin-top:14px}
+  .btn{background:var(--brand);color:var(--brand-ink);border:none;border-radius:10px;padding:12px 22px;font-size:15px;font-weight:700;cursor:pointer}
+  .btn:disabled{opacity:.5;cursor:default}
+  .btn.sm{padding:9px 16px;font-size:13.5px}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  .hint{color:var(--muted);font-size:12px}
+  #answer{margin-top:20px}
+  .ans-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:20px 22px}
+  .ans-card h2{font-size:15.5px;margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+  .ans-card h3{font-size:14.5px;margin:16px 0 6px;color:var(--brand)}
+  .ans-card ul{margin:6px 0;padding-left:20px}
+  .ans-card li{margin:3px 0}
+  .ans-card p{margin:8px 0}
+  .ans-card strong{font-weight:700}
+  .ans-card code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:13px}
+  .badge{display:inline-block;background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:11.5px;color:var(--muted);margin:0 4px 4px 0}
+  .status{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+  .overlay{position:fixed;inset:0;background:rgba(10,15,20,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:24px;max-width:420px;width:100%}
+  .modal h3{margin:0 0 6px;font-size:16px}
+  .modal p{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .err{color:var(--danger);font-size:13px;margin-top:8px;min-height:16px}
+  .foot{color:var(--muted);font-size:11.5px;text-align:center;margin-top:26px;line-height:1.6}
+  .kv{font-size:12px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">CS</div>
+    <div>
+      <h1>カタグルマ CS お助けアシスタント</h1>
+      <div class="sub">困りごと・ご質問を入れると、FAQ・ナイスアシスト事例から最適な打ち手を提案します</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="iconbtn" id="settingsBtn">⚙ 設定</button>
+  </header>
+
+  <div class="card">
+    <label for="q">お客様からのご質問／CSで感じている困りごと</label>
+    <textarea id="q" placeholder="例）園長が忙しくてフォロー会がリスケ続き。ログインも止まりがちで、どう活用を再開してもらえばいい？"></textarea>
+
+    <div class="examples" id="examples">
+      <span class="chip">園長が多忙で活用が停滞している。どう再開を促す？</span>
+      <span class="chip">個人面談の回答が集まらない。どうすれば？</span>
+      <span class="chip">研修報告はスマホでも入力できる？他社との違いは？</span>
+      <span class="chip">自己評価の頻度は他法人だとどのくらい？</span>
+      <span class="chip">紙に慣れた職員が多い園への移行の進め方は？</span>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <div>
+        <label for="plan">プラン（任意）</label>
+        <select id="plan">
+          <option value="">未指定</option>
+          <option>ライト</option><option>スタンダード</option><option>プレミアム</option>
+          <option>GB以上</option>
+        </select>
+      </div>
+      <div>
+        <label for="phase">オンボ状況（任意）</label>
+        <select id="phase">
+          <option value="">未指定</option>
+          <option value="OB⓪ 導入直後">OB⓪ 導入直後</option>
+          <option value="OB① オンボ中">OB① オンボ中</option>
+          <option value="OB② 一部定着">OB② 一部定着</option>
+          <option value="アダプション/活用期">アダプション/活用期</option>
+        </select>
+      </div>
+      <div>
+        <label for="model">モデル</label>
+        <select id="model">
+          <option value="claude-opus-5">Opus 5（最高品質）</option>
+          <option value="claude-sonnet-5" selected>Sonnet 5（推奨・速い/安い）</option>
+          <option value="claude-haiku-4-5">Haiku 4.5（最速/最安）</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="askBtn">提案してもらう</button>
+      <span class="hint" id="keyHint"></span>
+    </div>
+  </div>
+
+  <div id="answer"></div>
+
+  <div class="foot">
+    社内利用専用ツール／知識ベースは匿名化済み・最終更新 <span id="kbdate"></span><br>
+    APIキーはこのブラウザ内のみに保存され、Anthropic以外へ送信されません。回答はAI生成のため、最終判断はCS担当者が行ってください。
+  </div>
+</div>
+
+<!-- パスコードゲート -->
+<div class="overlay" id="gate">
+  <div class="modal">
+    <h3>🔒 パスコード</h3>
+    <p>社内CSメンバー向けのツールです。共有されたパスコードを入力してください。</p>
+    <input type="password" id="passInput" placeholder="パスコード" autocomplete="off">
+    <div class="err" id="passErr"></div>
+    <div style="margin-top:14px;text-align:right">
+      <button class="btn sm" id="passBtn">開く</button>
+    </div>
+  </div>
+</div>
+
+<!-- 設定モーダル -->
+<div class="overlay" id="settings" style="display:none">
+  <div class="modal">
+    <h3>⚙ 設定</h3>
+    <p>Claude APIキーを登録してください。<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">コンソールで発行</a>（<code>sk-ant-...</code>）。このブラウザにのみ保存されます。</p>
+    <label for="apiKey">Anthropic API キー</label>
+    <input type="password" id="apiKey" placeholder="sk-ant-api03-...">
+    <div class="kv">※各自のキーで従量課金されます。Sonnet/Haikuを選ぶと安く・速くなります。</div>
+    <div class="err" id="setErr"></div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sm ghost" id="setClose">閉じる</button>
+      <button class="btn sm" id="setSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="kb.js"></script>
+<script>
+/* ============== 設定 ============== */
+// 社内配布用の簡易パスコード。直リンク流入の抑止が目的で、本格的な認証ではありません。
+// 変更する場合はこの値を書き換えて再アップロードしてください。既定: katagrma-cs
+const PASSCODE_PLAIN = "katagrma-cs";
+
+const LS_KEY = "katagrma_cs_api_key";
+const SS_GATE = "katagrma_cs_gate_ok";
+const API_URL = "https://api.anthropic.com/v1/messages";
+
+/* ============== ユーティリティ ============== */
+const $ = s => document.querySelector(s);
+document.getElementById("kbdate").textContent = (window.KB && KB.updated) || "";
+
+/* ============== パスコードゲート ============== */
+function openApp(){ $("#gate").style.display="none"; }
+if(sessionStorage.getItem(SS_GATE)==="1"){ openApp(); }
+$("#passBtn").onclick = ()=>{
+  const v = $("#passInput").value.trim();
+  if(v === PASSCODE_PLAIN){ sessionStorage.setItem(SS_GATE,"1"); openApp(); }
+  else { $("#passErr").textContent = "パスコードが違います。"; }
+};
+$("#passInput").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#passBtn").click(); });
+
+/* ============== 設定モーダル ============== */
+function refreshKeyHint(){
+  const k = localStorage.getItem(LS_KEY);
+  $("#keyHint").innerHTML = k ? "APIキー登録済み ✓" : "<span style='color:var(--danger)'>APIキー未登録 → 右上「設定」から登録してください</span>";
+}
+$("#settingsBtn").onclick = ()=>{ $("#apiKey").value = localStorage.getItem(LS_KEY)||""; $("#settings").style.display="flex"; };
+$("#setClose").onclick = ()=> $("#settings").style.display="none";
+$("#setSave").onclick = ()=>{
+  const k = $("#apiKey").value.trim();
+  if(k && !k.startsWith("sk-ant-")){ $("#setErr").textContent="キーは sk-ant- で始まります。ご確認ください。"; return; }
+  if(k) localStorage.setItem(LS_KEY,k); else localStorage.removeItem(LS_KEY);
+  $("#setErr").textContent=""; $("#settings").style.display="none"; refreshKeyHint();
+};
+refreshKeyHint();
+
+/* ============== 例文クリック ============== */
+$("#examples").addEventListener("click",e=>{
+  if(e.target.classList.contains("chip")){ $("#q").value = e.target.textContent; $("#q").focus(); }
+});
+
+/* ============== システムプロンプト構築 ============== */
+function buildInstructions(){
+  return `あなたはSaaS「カタグルマ」（保育・教育施設向けの人材育成/マネジメント支援システム）のカスタマーサクセス(CS)チームを支援する社内アシスタントです。CS担当者が顧客対応で躓いたときに、社内に蓄積されたFAQ・ナイスアシスト事例・テンプレ運用ノウハウをもとに、実務ですぐ使える最適な打ち手を提案します。
+
+【あなたの役割】
+CS担当者が入力した「顧客からの質問」または「CSが感じている困りごと」に対し、参考資料（後述のナレッジベース）を根拠に、具体的で実行可能なアドバイスを返します。想定される相談は主に次の3種類です:
+1. システムに関するドメイン知識・仕様の質問（機能の意味、監査との関係、頻度の目安など）
+2. 「こういう使い方はできますか？」という応用・運用の相談
+3. 忙しくて活用が停滞しているユーザーへのアプローチ方法の相談
+
+【回答の作り方】
+- まず相談の意図を汲み取り、最も的確な打ち手を示す。ナレッジベースに直接該当がある場合はそれを最優先で使う。
+- 「停滞ユーザー」系の相談では、ナレッジベースの『タイプ別アプローチ表』のどのタイプに当てはまりそうかを見極め、対策と具体例に沿って提案する。該当しそうなら複数タイプを併記してよい。
+- 事例(cases)は必ず状況が似たものを選び、「どう対応して、どうなったか」を要点で引用する。
+- 手順や打ち手は箇条書きで、CSがそのまま動ける粒度にする。必要なら顧客への声かけ例文も添える。
+- 顧客の状況（プラン/オンボ状況）が指定されていればそれに合わせて調整する。
+- 情報が不足していて判断が分かれる場合は、確認すべきポイントを提示したうえで場合分けして答える。
+
+【トーン・禁止事項】
+- 前向き・中立・実務的に。断定しすぎず、現場のCSが判断しやすい形で。
+- ナレッジベースは匿名化済み。回答に実在の法人名・個人名を創作して出さない（「ある社会福祉法人の事例では」等の一般化で表現）。
+- ナレッジベースに根拠がない事柄を断定しない。一般論として補足する場合は「※一般的な進め方として」と明示する。
+- カタグルマの機能仕様について、ナレッジベースと矛盾する断定を避ける。不確かな仕様は「担当や資料での確認をおすすめします」と添える。
+
+【出力フォーマット】(Markdown、簡潔に)
+## 見立て
+（相談の意図と、どのタイプ/論点かを1〜3行で）
+## 打ち手
+（箇条書き。優先度順。必要なら「声かけ例」を添える）
+## 参考にした社内ナレッジ
+（使ったFAQ/事例/タイプを短く列挙。例: ・タイプ別「超多忙・決裁権者」 ・事例「園長主導が困難→カタグルマ委員」）
+## 次の一手 / 確認したいこと
+（あれば）`;
+}
+function buildKBText(){
+  const k = window.KB;
+  let s = "# カタグルマ CS ナレッジベース（匿名化済み・"+k.updated+"）\n\n";
+  s += "## FAQ（フォロー手順Q&A）\n";
+  k.faq.forEach((x,i)=>{ s+=`- [FAQ:${x.fn}] Q:${x.q}（対象:${x.state}）\n  A:${x.a}\n`; });
+  s += "\n## 停滞ユーザー タイプ別アプローチ表\n";
+  k.approachTypes.forEach(t=>{ s+=`- タイプ「${t.type}」\n  特徴:${t.feature}\n  対策:${t.policy}\n  具体例:${t.example}\n`; });
+  s += "\n## ナイスアシスト事例（状況→打ち手→結果）\n";
+  k.cases.forEach(c=>{ s+=`- 事例「${c.theme}」(${c.service})\n  状況:${c.situation}\n  打ち手:${c.approach}\n  結果:${c.result}\n`; });
+  s += "\n## テンプレ・運用ノウハウ\n";
+  k.templates.forEach(t=>{ s+=`- [${t.fn}] ${t.idea}（汎用性:${t.scope}）\n`; });
+  return s;
+}
+
+/* ============== Markdown 簡易レンダリング ============== */
+function mdToHtml(md){
+  const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const lines = md.split("\n");
+  let html="", inList=false;
+  const inline = t => esc(t)
+    .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
+    .replace(/`(.+?)`/g,"<code>$1</code>");
+  const bullet = /^\s*(?:[-*]\s+|・\s*)/;
+  for(let line of lines){
+    if(bullet.test(line)){
+      if(!inList){ html+="<ul>"; inList=true; }
+      html += "<li>"+inline(line.replace(bullet,""))+"</li>";
+      continue;
+    }
+    if(inList){ html+="</ul>"; inList=false; }
+    if(/^###\s+/.test(line)) html+="<h3>"+inline(line.replace(/^###\s+/,""))+"</h3>";
+    else if(/^##\s+/.test(line)) html+="<h2>"+inline(line.replace(/^##\s+/,""))+"</h2>";
+    else if(/^#\s+/.test(line)) html+="<h2>"+inline(line.replace(/^#\s+/,""))+"</h2>";
+    else if(line.trim()==="") html+="";
+    else html+="<p>"+inline(line)+"</p>";
+  }
+  if(inList) html+="</ul>";
+  return html;
+}
+
+/* ============== 送信 ============== */
+let busy=false;
+$("#askBtn").onclick = ask;
+$("#q").addEventListener("keydown",e=>{ if((e.metaKey||e.ctrlKey)&&e.key==="Enter") ask(); });
+
+async function ask(){
+  if(busy) return;
+  const key = localStorage.getItem(LS_KEY);
+  if(!key){ $("#settings").style.display="flex"; return; }
+  const q = $("#q").value.trim();
+  if(!q){ $("#q").focus(); return; }
+
+  const plan = $("#plan").value, phase = $("#phase").value, model = $("#model").value;
+  let ctx = "";
+  if(plan) ctx += `プラン:${plan}. `;
+  if(phase) ctx += `オンボ状況:${phase}. `;
+  const userMsg = (ctx? "【顧客の状況】"+ctx+"\n":"") + "【相談内容】\n"+q;
+
+  busy=true; $("#askBtn").disabled=true;
+  const out = $("#answer");
+  out.innerHTML = `<div class="ans-card"><div class="status"><span class="dot"></span><span id="stat">ナレッジベースを参照して考えています…</span></div><div id="stream"></div></div>`;
+  const streamEl = $("#stream");
+  let acc="";
+
+  try{
+    const body = {
+      model,
+      max_tokens: 2048,
+      system: [
+        { type:"text", text: buildInstructions() },
+        { type:"text", text: buildKBText(), cache_control:{type:"ephemeral"} }
+      ],
+      messages: [{ role:"user", content: userMsg }],
+      stream: true
+    };
+    const res = await fetch(API_URL,{
+      method:"POST",
+      headers:{
+        "content-type":"application/json",
+        "x-api-key": key,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok){
+      let msg = "エラー "+res.status;
+      try{ const j=await res.json(); if(j.error&&j.error.message) msg += "：" + j.error.message; }catch(e){}
+      if(res.status===401) msg = "APIキーが無効です。設定から正しいキーを登録してください。";
+      throw new Error(msg);
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf="";
+    while(true){
+      const {done,value} = await reader.read();
+      if(done) break;
+      buf += dec.decode(value,{stream:true});
+      let idx;
+      while((idx=buf.indexOf("\n"))>=0){
+        const line = buf.slice(0,idx); buf=buf.slice(idx+1);
+        if(!line.startsWith("data:")) continue;
+        const data = line.slice(5).trim();
+        if(!data || data==="[DONE]") continue;
+        try{
+          const ev = JSON.parse(data);
+          if(ev.type==="content_block_delta" && ev.delta && ev.delta.type==="text_delta"){
+            acc += ev.delta.text;
+            streamEl.innerHTML = mdToHtml(acc);
+            const s=$("#stat"); if(s) s.textContent="回答中…";
+          }
+          if(ev.type==="message_stop"){ /* done */ }
+        }catch(e){}
+      }
+    }
+    const statLine = out.querySelector(".status"); if(statLine) statLine.remove();
+    if(!acc.trim()) streamEl.innerHTML = "<p>回答を取得できませんでした。もう一度お試しください。</p>";
+  }catch(err){
+    out.innerHTML = `<div class="ans-card"><p class="err">${err.message}</p><p class="hint">APIキー・ネットワーク・利用枠をご確認ください。モデルをSonnet/Haikuに切り替えると軽くなります。</p></div>`;
+  }finally{
+    busy=false; $("#askBtn").disabled=false;
+  }
+}
+</script>
+</body>
+</html>
