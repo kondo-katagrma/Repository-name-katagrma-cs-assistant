@@ -129,6 +129,19 @@
   </div>
 </div>
 
+<!-- パスコードゲート -->
+<div class="overlay" id="gate">
+  <div class="modal">
+    <h3>🔒 パスコード</h3>
+    <p>社内CSメンバー向けのツールです。共有されたパスコードを入力してください。</p>
+    <input type="password" id="passInput" placeholder="パスコード" autocomplete="off">
+    <div class="err" id="passErr"></div>
+    <div style="margin-top:14px;text-align:right">
+      <button class="btn sm" id="passBtn">開く</button>
+    </div>
+  </div>
+</div>
+
 <!-- 設定モーダル -->
 <div class="overlay" id="settings" style="display:none">
   <div class="modal">
@@ -148,12 +161,27 @@
 <script src="kb.js"></script>
 <script>
 /* ============== 設定 ============== */
+// 社内配布用の簡易パスコード。直リンク流入の抑止が目的で、本格的な認証ではありません。
+// 変更する場合はこの値を書き換えて再アップロードしてください。既定: katagrma-cs
+const PASSCODE_PLAIN = "katagrma-cs";
+
 const LS_KEY = "katagrma_cs_api_key";
+const SS_GATE = "katagrma_cs_gate_ok";
 const API_URL = "https://api.anthropic.com/v1/messages";
 
 /* ============== ユーティリティ ============== */
 const $ = s => document.querySelector(s);
 document.getElementById("kbdate").textContent = (window.KB && KB.updated) || "";
+
+/* ============== パスコードゲート ============== */
+function openApp(){ $("#gate").style.display="none"; }
+if(sessionStorage.getItem(SS_GATE)==="1"){ openApp(); }
+$("#passBtn").onclick = ()=>{
+  const v = $("#passInput").value.trim();
+  if(v === PASSCODE_PLAIN){ sessionStorage.setItem(SS_GATE,"1"); openApp(); }
+  else { $("#passErr").textContent = "パスコードが違います。"; }
+};
+$("#passInput").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#passBtn").click(); });
 
 /* ============== 設定モーダル ============== */
 function refreshKeyHint(){
