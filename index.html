@@ -60,7 +60,19 @@
   .err{color:var(--danger);font-size:13px;margin-top:8px;min-height:16px}
   .foot{color:var(--muted);font-size:11.5px;text-align:center;margin-top:26px;line-height:1.6}
   .kv{font-size:12px;color:var(--muted);margin-top:6px}
+  .section-title{font-size:15px;font-weight:700;margin:0 0 4px}
+  .section-sub{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+  .searchbar{display:flex;gap:8px}
+  .searchbar input{flex:1}
+  .result{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px;background:var(--panel2)}
+  .result .rkind{display:inline-block;font-size:11px;font-weight:700;color:var(--brand);background:var(--chip);border-radius:6px;padding:1px 7px;margin-bottom:6px}
+  .result .rtitle{font-weight:700;font-size:13.5px;margin-bottom:3px}
+  .result .rbody{font-size:13px;color:var(--ink);white-space:pre-wrap}
+  .result .rmeta{color:var(--muted);font-size:11.5px;margin-top:4px}
+  .signrow{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .setup-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div class="wrap">
@@ -114,6 +126,32 @@
   </div>
 
   <div id="answer"></div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="section-title">🔍 事例・FAQ検索</div>
+    <div class="section-sub">スプレッドシートの最新ナレッジ（法人名・担当者名は自動的に除外して表示）をキーワード検索します。</div>
+    <div class="signrow">
+      <button class="btn sm" id="googleSignInBtn">Googleでログイン</button>
+      <span class="hint" id="signStatus">未ログイン</span>
+      <button class="btn sm ghost" id="refreshKbBtn" style="display:none">🔄 最新を再取得</button>
+    </div>
+    <div class="searchbar">
+      <input type="text" id="searchQ" placeholder="例）個人面談 回答が集まらない">
+      <button class="btn sm" id="searchBtn">検索</button>
+    </div>
+    <div id="searchResults"></div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="section-title">🛠 Claude.aiプロジェクトのセットアップ</div>
+    <div class="section-sub">まだプロジェクトを作っていない場合は、以下をコピーしてClaude.aiの新規プロジェクトに登録してください。</div>
+    <div class="setup-row">
+      <button class="btn sm" id="copyInstructionsBtn">カスタム指示をコピー</button>
+      <button class="btn sm" id="copyKnowledgeBtn">知識ベースをコピー</button>
+      <a class="btn sm ghost" href="https://claude.ai/new" target="_blank" rel="noopener">Claude.aiで新規プロジェクト作成</a>
+    </div>
+    <div class="hint" id="setupHint" style="margin-top:10px"></div>
+  </div>
 
   <div class="foot">
     社内利用専用ツール／知識ベースは匿名化済み・最終更新 <span id="kbdate"></span><br>
@@ -228,6 +266,220 @@ async function copyPrompt(){
     </div>`;
   }
 }
+
+/* ============== セットアップ：カスタム指示・知識ベースのコピー ============== */
+const PROJECT_INSTRUCTIONS = `あなたはSaaS「カタグルマ」（保育・教育施設向けの人材育成/マネジメント支援システム）のカスタマーサクセス(CS)チームを支援する社内アシスタントです。CS担当者が顧客対応で躓いたときに、社内に蓄積されたFAQ・ナイスアシスト事例・テンプレ運用ノウハウをもとに、実務ですぐ使える最適な打ち手を提案します。
+
+【あなたの役割】
+CS担当者が入力した「顧客からの質問」または「CSが感じている困りごと」に対し、参考資料（プロジェクトの知識ファイル「カタグルマ CS ナレッジベース」）を根拠に、具体的で実行可能なアドバイスを返します。想定される相談は主に次の3種類です:
+1. システムに関するドメイン知識・仕様の質問（機能の意味、監査との関係、頻度の目安など）
+2. 「こういう使い方はできますか？」という応用・運用の相談
+3. 忙しくて活用が停滞しているユーザーへのアプローチ方法の相談
+
+【回答の作り方】
+- まず相談の意図を汲み取り、最も的確な打ち手を示す。ナレッジベースに直接該当がある場合はそれを最優先で使う。
+- 「停滞ユーザー」系の相談では、ナレッジベースの『タイプ別アプローチ表』のどのタイプに当てはまりそうかを見極め、対策と具体例に沿って提案する。該当しそうなら複数タイプを併記してよい。
+- 事例は必ず状況が似たものを選び、「どう対応して、どうなったか」を要点で引用する。
+- 手順や打ち手は箇条書きで、CSがそのまま動ける粒度にする。必要なら顧客への声かけ例文も添える。
+- 顧客の状況（プラン/オンボ状況）が伝えられていればそれに合わせて調整する。
+- 情報が不足していて判断が分かれる場合は、確認すべきポイントを提示したうえで場合分けして答える。
+
+【トーン・禁止事項】
+- 前向き・中立・実務的に。断定しすぎず、現場のCSが判断しやすい形で。
+- ナレッジベースは匿名化済み。回答に実在の法人名・個人名を創作して出さない（「ある社会福祉法人の事例では」等の一般化で表現）。
+- ナレッジベースに根拠がない事柄を断定しない。一般論として補足する場合は「※一般的な進め方として」と明示する。
+- カタグルマの機能仕様について、ナレッジベースと矛盾する断定を避ける。不確かな仕様は「担当や資料での確認をおすすめします」と添える。
+
+【出力フォーマット】(Markdown、簡潔に)
+## 見立て
+（相談の意図と、どのタイプ/論点かを1〜3行で）
+## 打ち手
+（箇条書き。優先度順。必要なら「声かけ例」を添える）
+## 参考にした社内ナレッジ
+（使ったFAQ/事例/タイプを短く列挙）
+## 次の一手 / 確認したいこと
+（あれば）`;
+
+function buildKBText(){
+  const k = window.KB;
+  let s = "# カタグルマ CS ナレッジベース（匿名化済み・"+k.updated+"）\n\n";
+  s += "## FAQ（フォロー手順Q&A）\n";
+  k.faq.forEach((x)=>{ s+=`- [FAQ:${x.fn}] Q:${x.q}（対象:${x.state}）\n  A:${x.a}\n`; });
+  s += "\n## 停滞ユーザー タイプ別アプローチ表\n";
+  k.approachTypes.forEach(t=>{ s+=`- タイプ「${t.type}」\n  特徴:${t.feature}\n  対策:${t.policy}\n  具体例:${t.example}\n`; });
+  s += "\n## ナイスアシスト事例（状況→打ち手→結果）\n";
+  k.cases.forEach(c=>{ s+=`- 事例「${c.theme}」(${c.service})\n  状況:${c.situation}\n  打ち手:${c.approach}\n  結果:${c.result}\n`; });
+  s += "\n## テンプレ・運用ノウハウ\n";
+  k.templates.forEach(t=>{ s+=`- [${t.fn}] ${t.idea}（汎用性:${t.scope}）\n`; });
+  return s;
+}
+
+async function copyText(text, hintEl, label){
+  try{
+    await navigator.clipboard.writeText(text);
+    hintEl.textContent = `✅ ${label}をコピーしました。Claude.aiのプロジェクト設定画面に貼り付けてください。`;
+  }catch(err){
+    hintEl.textContent = `コピーに失敗しました（${label}）。ブラウザのクリップボード権限をご確認ください。`;
+  }
+}
+$("#copyInstructionsBtn").onclick = ()=> copyText(PROJECT_INSTRUCTIONS, $("#setupHint"), "カスタム指示");
+$("#copyKnowledgeBtn").onclick = ()=> copyText(buildKBText(), $("#setupHint"), "知識ベース");
+
+/* ============== 検索：Google OAuth連携でスプレッドシートを直接検索 ============== */
+const GOOGLE_CLIENT_ID = "496729694225-27792baoqgqi9sjiv9aj7ngho1igbk8m.apps.googleusercontent.com";
+const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+const SHEET_FAQ = "11GOcRgzmTvLXJbkfCslKQdKdXTeaIkuWm1qttbNPSj0";
+const SHEET_CASES = "1C_YwOiIPjszft-0Nck3Iweiq_pGCTDZw7aMCqqYQh8s";
+const SHEET_TEMPLATES = "1ukvZEcBpnIt496W8WivXwtBaS0PtbixFHCuT8v5tjyw";
+// これらの列は実名（担当者名・法人名・顧客園名）を含むため、検索対象には絶対に含めない。
+// 各シートは「安全な列だけを許可リスト形式で取得する」実装にしていること。
+
+let gToken = null;
+let tokenClient = null;
+let liveKB = null;
+let liveKBLoading = false;
+
+function ensureTokenClient(){
+  if(tokenClient) return tokenClient;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: SHEETS_SCOPE,
+    callback: (resp)=>{
+      if(resp.error){ $("#signStatus").textContent = "ログインに失敗しました："+resp.error; return; }
+      gToken = resp.access_token;
+      onSignedIn();
+    }
+  });
+  return tokenClient;
+}
+$("#googleSignInBtn").onclick = ()=>{
+  ensureTokenClient().requestAccessToken({ prompt: gToken ? "" : "consent" });
+};
+$("#refreshKbBtn").onclick = ()=> loadLiveKB(true);
+
+async function onSignedIn(){
+  $("#signStatus").textContent = "ログイン済み ✓";
+  $("#googleSignInBtn").textContent = "再ログイン";
+  $("#refreshKbBtn").style.display = "";
+  await loadLiveKB(false);
+}
+
+async function sheetMeta(spreadsheetId){
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`;
+  const res = await fetch(url, { headers:{ Authorization:`Bearer ${gToken}` } });
+  if(!res.ok) throw new Error("シート情報の取得に失敗しました（"+res.status+"）");
+  const data = await res.json();
+  return (data.sheets||[]).map(s=>s.properties.title);
+}
+async function sheetValues(spreadsheetId, range){
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`;
+  const res = await fetch(url, { headers:{ Authorization:`Bearer ${gToken}` } });
+  if(!res.ok) throw new Error("シートデータの取得に失敗しました（"+res.status+"）");
+  const data = await res.json();
+  return data.values || [];
+}
+// ヘッダー行の見出し文字列が誤ってデータとして混入するのを防ぐ簡易フィルタ
+const HEADER_WORDS = new Set(["NO.","ユーザからの質問","ユーザの状態","フォロー会中回答","年月","担当","法人名","サービス","提案内容","タイプ","ユーザの特徴","対策","具体的なアプローチ例","登録者","機能名","目的・概要（最大2、3行程度）","提案・仕様詳細（画面イメージあれば）","汎用性","補足等"]);
+
+async function loadLiveKB(forceRefresh){
+  if(liveKBLoading) return;
+  if(liveKB && !forceRefresh) return;
+  liveKBLoading = true;
+  $("#signStatus").textContent = "最新のナレッジを取得中…";
+  try{
+    const kb = { faq:[], approachTypes:[], cases:[], templates:[] };
+
+    const faqTabs = await sheetMeta(SHEET_FAQ);
+    for(const tab of faqTabs){
+      const rows = await sheetValues(SHEET_FAQ, `${tab}!A2:E500`);
+      for(const r of rows){
+        const q = r[1]||"";
+        if(!q || HEADER_WORDS.has(q)) continue;
+        kb.faq.push({ fn: tab, q, state: r[2]||"", a: r[3]||"" });
+      }
+    }
+
+    const caseTabs = await sheetMeta(SHEET_CASES);
+    for(const tab of caseTabs){
+      if(tab.includes("まとめ")){
+        const rows = await sheetValues(SHEET_CASES, `${tab}!A2:D200`);
+        for(const r of rows){
+          const type = r[0]||"";
+          if(!type || HEADER_WORDS.has(type)) continue;
+          kb.approachTypes.push({ type, feature:r[1]||"", policy:r[2]||"", example:r[3]||"" });
+        }
+      }else{
+        // B列(担当者実名)・C列(法人名)は取得しない。A(年月)・D(サービス)・E(提案内容)のみ使用。
+        const rows = await sheetValues(SHEET_CASES, `${tab}!A2:E500`);
+        for(const r of rows){
+          const content = r[4]||"";
+          if(!content || HEADER_WORDS.has(content)) continue;
+          kb.cases.push({ period:r[0]||"", theme: tab, service:r[3]||"", content });
+        }
+      }
+    }
+
+    const tplTabs = await sheetMeta(SHEET_TEMPLATES);
+    for(const tab of tplTabs){
+      // B列(登録者実名)・H列以降(顧客園名等)は取得しない。C〜G列のみ使用。
+      const rows = await sheetValues(SHEET_TEMPLATES, `${tab}!A2:G500`);
+      for(const r of rows){
+        const fn = r[2]||"";
+        if(!fn || HEADER_WORDS.has(fn)) continue;
+        kb.templates.push({ fn, idea:[r[3],r[4]].filter(Boolean).join(" / "), scope:r[5]||"" });
+      }
+    }
+
+    liveKB = kb;
+    const total = kb.faq.length + kb.approachTypes.length + kb.cases.length + kb.templates.length;
+    $("#signStatus").textContent = `ログイン済み ✓（${total}件取得・匿名化済み）`;
+  }catch(err){
+    $("#signStatus").textContent = "取得エラー："+err.message;
+  }finally{
+    liveKBLoading = false;
+  }
+}
+
+function escapeHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function runSearch(){
+  const q = $("#searchQ").value.trim();
+  const box = $("#searchResults");
+  if(!q){ box.innerHTML = ""; return; }
+  if(!liveKB){
+    box.innerHTML = `<p class="hint">先に「Googleでログイン」してください（社内Googleアカウントが必要です）。</p>`;
+    return;
+  }
+  const needle = q.toLowerCase();
+  const hits = [];
+  liveKB.faq.forEach(x=>{
+    const hay = [x.fn,x.q,x.state,x.a].join(" ").toLowerCase();
+    if(hay.includes(needle)) hits.push({kind:"FAQ",title:`[${x.fn}] ${x.q}`,body:x.a,meta:x.state});
+  });
+  liveKB.approachTypes.forEach(x=>{
+    const hay = [x.type,x.feature,x.policy,x.example].join(" ").toLowerCase();
+    if(hay.includes(needle)) hits.push({kind:"タイプ別アプローチ",title:x.type,body:`特徴:${x.feature}\n対策:${x.policy}\n具体例:${x.example}`,meta:""});
+  });
+  liveKB.cases.forEach(x=>{
+    const hay = [x.theme,x.service,x.content].join(" ").toLowerCase();
+    if(hay.includes(needle)) hits.push({kind:"ナイスアシスト事例",title:`${x.theme}（${x.service}）`,body:x.content,meta:x.period});
+  });
+  liveKB.templates.forEach(x=>{
+    const hay = [x.fn,x.idea,x.scope].join(" ").toLowerCase();
+    if(hay.includes(needle)) hits.push({kind:"テンプレ",title:x.fn,body:x.idea,meta:`汎用性:${x.scope}`});
+  });
+
+  if(hits.length===0){ box.innerHTML = `<p class="hint">該当する事例・FAQは見つかりませんでした。</p>`; return; }
+  box.innerHTML = hits.slice(0,40).map(h=>`
+    <div class="result">
+      <div class="rkind">${escapeHtml(h.kind)}</div>
+      <div class="rtitle">${escapeHtml(h.title)}</div>
+      <div class="rbody">${escapeHtml(h.body)}</div>
+      ${h.meta? `<div class="rmeta">${escapeHtml(h.meta)}</div>`:""}
+    </div>`).join("");
+}
+$("#searchBtn").onclick = runSearch;
+$("#searchQ").addEventListener("keydown", e=>{ if(e.key==="Enter") runSearch(); });
 </script>
 </body>
 </html>
