@@ -68,7 +68,7 @@
     <div class="logo">CS</div>
     <div>
       <h1>カタグルマ CS お助けアシスタント</h1>
-      <div class="sub">困りごと・ご質問を入れると、FAQ・ナイスアシスト事例から最適な打ち手を提案します</div>
+      <div class="sub">困りごと・ご質問を入れると、Claude.aiに貼り付けるだけの質問文を作成します</div>
     </div>
     <div class="spacer"></div>
     <button class="iconbtn" id="settingsBtn">⚙ 設定</button>
@@ -105,19 +105,11 @@
           <option value="アダプション/活用期">アダプション/活用期</option>
         </select>
       </div>
-      <div>
-        <label for="model">モデル</label>
-        <select id="model">
-          <option value="claude-opus-5">Opus 5（最高品質）</option>
-          <option value="claude-sonnet-5" selected>Sonnet 5（推奨・速い/安い）</option>
-          <option value="claude-haiku-4-5">Haiku 4.5（最速/最安）</option>
-        </select>
-      </div>
     </div>
 
     <div class="actions">
-      <button class="btn" id="askBtn">提案してもらう</button>
-      <span class="hint" id="keyHint"></span>
+      <button class="btn" id="askBtn">質問文をコピーする</button>
+      <span class="hint" id="copyHint"></span>
     </div>
   </div>
 
@@ -125,7 +117,7 @@
 
   <div class="foot">
     社内利用専用ツール／知識ベースは匿名化済み・最終更新 <span id="kbdate"></span><br>
-    APIキーはこのブラウザ内のみに保存され、Anthropic以外へ送信されません。回答はAI生成のため、最終判断はCS担当者が行ってください。
+    このアプリはAI呼び出しを行いません。作成した質問文はご自身のClaude.aiアカウント（プロジェクトに知識ベース登録済み）に貼り付けてご利用ください。回答はAI生成のため、最終判断はCS担当者が行ってください。
   </div>
 </div>
 
@@ -146,10 +138,10 @@
 <div class="overlay" id="settings" style="display:none">
   <div class="modal">
     <h3>⚙ 設定</h3>
-    <p>Claude APIキーを登録してください。<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">コンソールで発行</a>（<code>sk-ant-...</code>）。このブラウザにのみ保存されます。</p>
-    <label for="apiKey">Anthropic API キー</label>
-    <input type="password" id="apiKey" placeholder="sk-ant-api03-...">
-    <div class="kv">※各自のキーで従量課金されます。Sonnet/Haikuを選ぶと安く・速くなります。</div>
+    <p>あなたのClaude.ai「プロジェクト」（カタグルマCSナレッジベース登録済み）のURLを登録すると、「Claude.aiを開く」ボタンでそのプロジェクトに直接ジャンプできます（未登録でも利用は可能です）。</p>
+    <label for="projectUrl">Claude.ai プロジェクトURL（任意）</label>
+    <input type="text" id="projectUrl" placeholder="https://claude.ai/project/xxxxxxxx">
+    <div class="kv">※このブラウザにのみ保存されます。URLはご自身のプロジェクトページを開いてアドレスバーからコピーしてください。</div>
     <div class="err" id="setErr"></div>
     <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sm ghost" id="setClose">閉じる</button>
@@ -164,10 +156,9 @@
 // 社内配布用の簡易パスコード。直リンク流入の抑止が目的で、本格的な認証ではありません。
 // 変更する場合はこの値を書き換えて再アップロードしてください。既定: katagrma-cs
 const PASSCODE_PLAIN = "katagrma-cs";
-
-const LS_KEY = "katagrma_cs_api_key";
 const SS_GATE = "katagrma_cs_gate_ok";
-const API_URL = "https://api.anthropic.com/v1/messages";
+const LS_PROJECT_URL = "katagrma_cs_project_url";
+const DEFAULT_CLAUDE_URL = "https://claude.ai/new";
 
 /* ============== ユーティリティ ============== */
 const $ = s => document.querySelector(s);
@@ -184,180 +175,57 @@ $("#passBtn").onclick = ()=>{
 $("#passInput").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#passBtn").click(); });
 
 /* ============== 設定モーダル ============== */
-function refreshKeyHint(){
-  const k = localStorage.getItem(LS_KEY);
-  $("#keyHint").innerHTML = k ? "APIキー登録済み ✓" : "<span style='color:var(--danger)'>APIキー未登録 → 右上「設定」から登録してください</span>";
-}
-$("#settingsBtn").onclick = ()=>{ $("#apiKey").value = localStorage.getItem(LS_KEY)||""; $("#settings").style.display="flex"; };
+$("#settingsBtn").onclick = ()=>{ $("#projectUrl").value = localStorage.getItem(LS_PROJECT_URL)||""; $("#settings").style.display="flex"; };
 $("#setClose").onclick = ()=> $("#settings").style.display="none";
 $("#setSave").onclick = ()=>{
-  const k = $("#apiKey").value.trim();
-  if(k && !k.startsWith("sk-ant-")){ $("#setErr").textContent="キーは sk-ant- で始まります。ご確認ください。"; return; }
-  if(k) localStorage.setItem(LS_KEY,k); else localStorage.removeItem(LS_KEY);
-  $("#setErr").textContent=""; $("#settings").style.display="none"; refreshKeyHint();
+  const u = $("#projectUrl").value.trim();
+  if(u && !/^https:\/\/claude\.ai\//.test(u)){ $("#setErr").textContent="https://claude.ai/ で始まるURLを入力してください。"; return; }
+  if(u) localStorage.setItem(LS_PROJECT_URL,u); else localStorage.removeItem(LS_PROJECT_URL);
+  $("#setErr").textContent=""; $("#settings").style.display="none";
 };
-refreshKeyHint();
 
 /* ============== 例文クリック ============== */
 $("#examples").addEventListener("click",e=>{
   if(e.target.classList.contains("chip")){ $("#q").value = e.target.textContent; $("#q").focus(); }
 });
 
-/* ============== システムプロンプト構築 ============== */
-function buildInstructions(){
-  return `あなたはSaaS「カタグルマ」（保育・教育施設向けの人材育成/マネジメント支援システム）のカスタマーサクセス(CS)チームを支援する社内アシスタントです。CS担当者が顧客対応で躓いたときに、社内に蓄積されたFAQ・ナイスアシスト事例・テンプレ運用ノウハウをもとに、実務ですぐ使える最適な打ち手を提案します。
-
-【あなたの役割】
-CS担当者が入力した「顧客からの質問」または「CSが感じている困りごと」に対し、参考資料（後述のナレッジベース）を根拠に、具体的で実行可能なアドバイスを返します。想定される相談は主に次の3種類です:
-1. システムに関するドメイン知識・仕様の質問（機能の意味、監査との関係、頻度の目安など）
-2. 「こういう使い方はできますか？」という応用・運用の相談
-3. 忙しくて活用が停滞しているユーザーへのアプローチ方法の相談
-
-【回答の作り方】
-- まず相談の意図を汲み取り、最も的確な打ち手を示す。ナレッジベースに直接該当がある場合はそれを最優先で使う。
-- 「停滞ユーザー」系の相談では、ナレッジベースの『タイプ別アプローチ表』のどのタイプに当てはまりそうかを見極め、対策と具体例に沿って提案する。該当しそうなら複数タイプを併記してよい。
-- 事例(cases)は必ず状況が似たものを選び、「どう対応して、どうなったか」を要点で引用する。
-- 手順や打ち手は箇条書きで、CSがそのまま動ける粒度にする。必要なら顧客への声かけ例文も添える。
-- 顧客の状況（プラン/オンボ状況）が指定されていればそれに合わせて調整する。
-- 情報が不足していて判断が分かれる場合は、確認すべきポイントを提示したうえで場合分けして答える。
-
-【トーン・禁止事項】
-- 前向き・中立・実務的に。断定しすぎず、現場のCSが判断しやすい形で。
-- ナレッジベースは匿名化済み。回答に実在の法人名・個人名を創作して出さない（「ある社会福祉法人の事例では」等の一般化で表現）。
-- ナレッジベースに根拠がない事柄を断定しない。一般論として補足する場合は「※一般的な進め方として」と明示する。
-- カタグルマの機能仕様について、ナレッジベースと矛盾する断定を避ける。不確かな仕様は「担当や資料での確認をおすすめします」と添える。
-
-【出力フォーマット】(Markdown、簡潔に)
-## 見立て
-（相談の意図と、どのタイプ/論点かを1〜3行で）
-## 打ち手
-（箇条書き。優先度順。必要なら「声かけ例」を添える）
-## 参考にした社内ナレッジ
-（使ったFAQ/事例/タイプを短く列挙。例: ・タイプ別「超多忙・決裁権者」 ・事例「園長主導が困難→カタグルマ委員」）
-## 次の一手 / 確認したいこと
-（あれば）`;
-}
-function buildKBText(){
-  const k = window.KB;
-  let s = "# カタグルマ CS ナレッジベース（匿名化済み・"+k.updated+"）\n\n";
-  s += "## FAQ（フォロー手順Q&A）\n";
-  k.faq.forEach((x,i)=>{ s+=`- [FAQ:${x.fn}] Q:${x.q}（対象:${x.state}）\n  A:${x.a}\n`; });
-  s += "\n## 停滞ユーザー タイプ別アプローチ表\n";
-  k.approachTypes.forEach(t=>{ s+=`- タイプ「${t.type}」\n  特徴:${t.feature}\n  対策:${t.policy}\n  具体例:${t.example}\n`; });
-  s += "\n## ナイスアシスト事例（状況→打ち手→結果）\n";
-  k.cases.forEach(c=>{ s+=`- 事例「${c.theme}」(${c.service})\n  状況:${c.situation}\n  打ち手:${c.approach}\n  結果:${c.result}\n`; });
-  s += "\n## テンプレ・運用ノウハウ\n";
-  k.templates.forEach(t=>{ s+=`- [${t.fn}] ${t.idea}（汎用性:${t.scope}）\n`; });
-  return s;
-}
-
-/* ============== Markdown 簡易レンダリング ============== */
-function mdToHtml(md){
-  const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const lines = md.split("\n");
-  let html="", inList=false;
-  const inline = t => esc(t)
-    .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
-    .replace(/`(.+?)`/g,"<code>$1</code>");
-  const bullet = /^\s*(?:[-*]\s+|・\s*)/;
-  for(let line of lines){
-    if(bullet.test(line)){
-      if(!inList){ html+="<ul>"; inList=true; }
-      html += "<li>"+inline(line.replace(bullet,""))+"</li>";
-      continue;
-    }
-    if(inList){ html+="</ul>"; inList=false; }
-    if(/^###\s+/.test(line)) html+="<h3>"+inline(line.replace(/^###\s+/,""))+"</h3>";
-    else if(/^##\s+/.test(line)) html+="<h2>"+inline(line.replace(/^##\s+/,""))+"</h2>";
-    else if(/^#\s+/.test(line)) html+="<h2>"+inline(line.replace(/^#\s+/,""))+"</h2>";
-    else if(line.trim()==="") html+="";
-    else html+="<p>"+inline(line)+"</p>";
-  }
-  if(inList) html+="</ul>";
-  return html;
-}
-
-/* ============== 送信 ============== */
-let busy=false;
-$("#askBtn").onclick = ask;
-$("#q").addEventListener("keydown",e=>{ if((e.metaKey||e.ctrlKey)&&e.key==="Enter") ask(); });
-
-async function ask(){
-  if(busy) return;
-  const key = localStorage.getItem(LS_KEY);
-  if(!key){ $("#settings").style.display="flex"; return; }
-  const q = $("#q").value.trim();
-  if(!q){ $("#q").focus(); return; }
-
-  const plan = $("#plan").value, phase = $("#phase").value, model = $("#model").value;
+/* ============== 質問文の組み立て ============== */
+function buildUserMessage(){
+  const plan = $("#plan").value, phase = $("#phase").value, q = $("#q").value.trim();
   let ctx = "";
   if(plan) ctx += `プラン:${plan}. `;
   if(phase) ctx += `オンボ状況:${phase}. `;
-  const userMsg = (ctx? "【顧客の状況】"+ctx+"\n":"") + "【相談内容】\n"+q;
+  return (ctx? "【顧客の状況】"+ctx+"\n":"") + "【相談内容】\n"+q;
+}
 
-  busy=true; $("#askBtn").disabled=true;
+/* ============== コピー＆Claude.aiを開く ============== */
+$("#askBtn").onclick = copyPrompt;
+$("#q").addEventListener("keydown",e=>{ if((e.metaKey||e.ctrlKey)&&e.key==="Enter") copyPrompt(); });
+
+async function copyPrompt(){
+  const q = $("#q").value.trim();
+  if(!q){ $("#q").focus(); return; }
+  const msg = buildUserMessage();
   const out = $("#answer");
-  out.innerHTML = `<div class="ans-card"><div class="status"><span class="dot"></span><span id="stat">ナレッジベースを参照して考えています…</span></div><div id="stream"></div></div>`;
-  const streamEl = $("#stream");
-  let acc="";
+  const projectUrl = localStorage.getItem(LS_PROJECT_URL) || DEFAULT_CLAUDE_URL;
 
   try{
-    const body = {
-      model,
-      max_tokens: 2048,
-      system: [
-        { type:"text", text: buildInstructions() },
-        { type:"text", text: buildKBText(), cache_control:{type:"ephemeral"} }
-      ],
-      messages: [{ role:"user", content: userMsg }],
-      stream: true
-    };
-    const res = await fetch(API_URL,{
-      method:"POST",
-      headers:{
-        "content-type":"application/json",
-        "x-api-key": key,
-        "anthropic-version":"2023-06-01",
-        "anthropic-dangerous-direct-browser-access":"true"
-      },
-      body: JSON.stringify(body)
-    });
-    if(!res.ok){
-      let msg = "エラー "+res.status;
-      try{ const j=await res.json(); if(j.error&&j.error.message) msg += "：" + j.error.message; }catch(e){}
-      if(res.status===401) msg = "APIキーが無効です。設定から正しいキーを登録してください。";
-      throw new Error(msg);
-    }
-    const reader = res.body.getReader();
-    const dec = new TextDecoder();
-    let buf="";
-    while(true){
-      const {done,value} = await reader.read();
-      if(done) break;
-      buf += dec.decode(value,{stream:true});
-      let idx;
-      while((idx=buf.indexOf("\n"))>=0){
-        const line = buf.slice(0,idx); buf=buf.slice(idx+1);
-        if(!line.startsWith("data:")) continue;
-        const data = line.slice(5).trim();
-        if(!data || data==="[DONE]") continue;
-        try{
-          const ev = JSON.parse(data);
-          if(ev.type==="content_block_delta" && ev.delta && ev.delta.type==="text_delta"){
-            acc += ev.delta.text;
-            streamEl.innerHTML = mdToHtml(acc);
-            const s=$("#stat"); if(s) s.textContent="回答中…";
-          }
-          if(ev.type==="message_stop"){ /* done */ }
-        }catch(e){}
-      }
-    }
-    const statLine = out.querySelector(".status"); if(statLine) statLine.remove();
-    if(!acc.trim()) streamEl.innerHTML = "<p>回答を取得できませんでした。もう一度お試しください。</p>";
+    await navigator.clipboard.writeText(msg);
+    out.innerHTML = `<div class="ans-card">
+      <p>✅ 質問文をコピーしました。Claude.aiの「カタグルマ CS お助けアシスタント」プロジェクトを開いて貼り付け（Ctrl+V）てください。</p>
+      <div class="actions">
+        <a class="btn sm" href="${projectUrl}" target="_blank" rel="noopener">Claude.aiを開く</a>
+      </div>
+      <p class="hint" style="margin-top:10px">※知識ベースを参照させるには、プロジェクトに <code>claude-project-knowledge.md</code> を登録している必要があります（未設定の場合は⚙設定を確認）。</p>
+    </div>`;
   }catch(err){
-    out.innerHTML = `<div class="ans-card"><p class="err">${err.message}</p><p class="hint">APIキー・ネットワーク・利用枠をご確認ください。モデルをSonnet/Haikuに切り替えると軽くなります。</p></div>`;
-  }finally{
-    busy=false; $("#askBtn").disabled=false;
+    out.innerHTML = `<div class="ans-card">
+      <p class="err">クリップボードへのコピーに失敗しました。以下の質問文を手動でコピーしてください。</p>
+      <textarea readonly style="min-height:140px">${msg.replace(/</g,"&lt;")}</textarea>
+      <div class="actions">
+        <a class="btn sm" href="${projectUrl}" target="_blank" rel="noopener">Claude.aiを開く</a>
+      </div>
+    </div>`;
   }
 }
 </script>
