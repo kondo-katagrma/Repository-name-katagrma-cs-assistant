@@ -85,8 +85,12 @@ const k = window.KB;
 let s = '# カタグルマ CS ナレッジベース（匿名化済み・'+k.updated+'）\n\n';
 s += '## FAQ（フォロー手順Q&A）\n';
 k.faq.forEach((x)=>{ s+='- [FAQ:'+x.fn+'] Q:'+x.q+'（対象:'+x.state+'）\n  A:'+x.a+'\n'; });
-s += '\n## 停滞ユーザー タイプ別アプローチ表\n';
-k.approachTypes.forEach(t=>{ s+='- タイプ「'+t.type+'」\n  特徴:'+t.feature+'\n  対策:'+t.policy+'\n  具体例:'+t.example+'\n'; });
+s += '\n## 顧客セグメント別アプローチ（本部推進力×規模）\n';
+k.approachTypes.forEach(t=>{ s+='- セグメント「'+t.type+'」\n  特徴:'+t.feature+'\n  対策の肝:'+t.policy+'\n  オンボーディングフロー:'+t.example+'\n'; });
+if(k.lightSuccess){
+  s += '\n## ライトサクセス設計（経験×必要性）\n';
+  k.lightSuccess.forEach(l=>{ s+='- 象限「'+l.quadrant+'」\n  進め方:'+l.approach+'\n'; });
+}
 s += '\n## ナイスアシスト事例（状況→打ち手→結果）\n';
 k.cases.forEach(c=>{ s+='- 事例「'+c.theme+'」('+c.service+')\n  状況:'+c.situation+'\n  打ち手:'+c.approach+'\n  結果:'+c.result+'\n'; });
 s += '\n## テンプレ・運用ノウハウ\n';

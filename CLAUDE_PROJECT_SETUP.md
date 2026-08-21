@@ -4,7 +4,7 @@ APIキー登録・従量課金なしで、Claude.aiの既存プラン（Free/Pro
 
 ## 必要なファイル
 - `claude-project-instructions.md` — カスタム指示（システムプロンプト）
-- `claude-project-knowledge.md` — カタグルマCSナレッジベース（FAQ・事例・タイプ別アプローチ・テンプレ）
+- `claude-project-knowledge.md` — カタグルマCSナレッジベース（FAQ・事例・顧客セグメント別アプローチ・ライトサクセス設計・テンプレ）
 
 ## 手順（メンバーごとに1回）
 
@@ -21,7 +21,6 @@ APIキー登録・従量課金なしで、Claude.aiの既存プラン（Free/Pro
 
 ## 注意
 - Freeプランの場合、利用回数制限に達すると一時的に使えなくなることがあります（時間経過でリセット）。
-- 従来の`index.html`（社内Webアプリ版）は、会社としてAPIキーの費用負担を引き受ける場合の選択肢として残していますが、今回はこちらのプロジェクト方式を優先運用とします。
 
 ## ナレッジベースの更新
 `kb.js` を編集後、以下のコマンドで `claude-project-knowledge.md` を再生成できます（開発者向け）。
@@ -34,8 +33,12 @@ const k = window.KB;
 let s = '# カタグルマ CS ナレッジベース（匿名化済み・'+k.updated+'）\n\n';
 s += '## FAQ（フォロー手順Q&A）\n';
 k.faq.forEach((x)=>{ s+='- [FAQ:'+x.fn+'] Q:'+x.q+'（対象:'+x.state+'）\n  A:'+x.a+'\n'; });
-s += '\n## 停滞ユーザー タイプ別アプローチ表\n';
-k.approachTypes.forEach(t=>{ s+='- タイプ「'+t.type+'」\n  特徴:'+t.feature+'\n  対策:'+t.policy+'\n  具体例:'+t.example+'\n'; });
+s += '\n## 顧客セグメント別アプローチ（本部推進力×規模）\n';
+k.approachTypes.forEach(t=>{ s+='- セグメント「'+t.type+'」\n  特徴:'+t.feature+'\n  対策の肝:'+t.policy+'\n  オンボーディングフロー:'+t.example+'\n'; });
+if(k.lightSuccess){
+  s += '\n## ライトサクセス設計（経験×必要性）\n';
+  k.lightSuccess.forEach(l=>{ s+='- 象限「'+l.quadrant+'」\n  進め方:'+l.approach+'\n'; });
+}
 s += '\n## ナイスアシスト事例（状況→打ち手→結果）\n';
 k.cases.forEach(c=>{ s+='- 事例「'+c.theme+'」('+c.service+')\n  状況:'+c.situation+'\n  打ち手:'+c.approach+'\n  結果:'+c.result+'\n'; });
 s += '\n## テンプレ・運用ノウハウ\n';
