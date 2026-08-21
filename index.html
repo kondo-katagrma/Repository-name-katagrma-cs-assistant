@@ -71,6 +71,14 @@
   .result .rmeta{color:var(--muted);font-size:11.5px;margin-top:4px}
   .signrow{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
   .setup-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .steps{list-style:none;margin:14px 0 0;padding:0;counter-reset:step}
+  .steps>li{counter-increment:step;display:flex;gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+  .steps>li:first-child{border-top:none;padding-top:2px}
+  .steps>li::before{content:counter(step);flex:none;width:24px;height:24px;border-radius:50%;background:var(--brand);color:var(--brand-ink);font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .steps .stepbody{flex:1}
+  .steps .steptitle{font-weight:700;font-size:13.5px;margin-bottom:3px}
+  .steps .stepdesc{color:var(--muted);font-size:12.5px;margin-bottom:8px;line-height:1.6}
+  .steps .stepdesc b{color:var(--ink)}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -150,13 +158,32 @@
 
   <div class="card" style="margin-top:20px">
     <div class="section-title">🛠 Claude.aiプロジェクトのセットアップ</div>
-    <div class="section-sub">まだプロジェクトを作っていない場合は、以下をコピーしてClaude.aiの新規プロジェクトに登録してください。</div>
-    <div class="setup-row">
-      <button class="btn sm" id="copyInstructionsBtn">カスタム指示をコピー</button>
-      <button class="btn sm" id="copyKnowledgeBtn">知識ベースをコピー</button>
-      <a class="btn sm ghost" href="https://claude.ai/new" target="_blank" rel="noopener">Claude.aiで新規プロジェクト作成</a>
-    </div>
+    <div class="section-sub">初めて使う方向けの手順です。3ステップで完了します（1人1回だけでOK）。</div>
+    <ol class="steps">
+      <li>
+        <div class="stepbody">
+          <div class="steptitle">Claude.aiで新しいプロジェクトを作る</div>
+          <div class="stepdesc">ボタンを押すとClaude.aiが開きます。左側の「プロジェクト」→「新規作成」を選び、名前を<b>「カタグルマ CS お助けアシスタント」</b>などわかりやすい名前にして作成してください。</div>
+          <a class="btn sm ghost" href="https://claude.ai/new" target="_blank" rel="noopener">Claude.aiを開く</a>
+        </div>
+      </li>
+      <li>
+        <div class="stepbody">
+          <div class="steptitle">「カスタム指示」に貼り付ける</div>
+          <div class="stepdesc">作成したプロジェクトの設定（歯車アイコンや「指示を追加」）を開き、<b>「カスタム指示」</b>の入力欄に貼り付けて保存してください。</div>
+          <button class="btn sm" id="copyInstructionsBtn">① カスタム指示をコピー</button>
+        </div>
+      </li>
+      <li>
+        <div class="stepbody">
+          <div class="steptitle">「知識」に登録する</div>
+          <div class="stepdesc">プロジェクト画面の<b>「知識を追加」</b>ボタンから、テキストとして貼り付け（または一度メモ帳等に貼り付けてから .txt で保存してアップロード）してください。これで社内ナレッジを踏まえた回答が返るようになります。</div>
+          <button class="btn sm" id="copyKnowledgeBtn">② 知識ベースをコピー</button>
+        </div>
+      </li>
+    </ol>
     <div class="hint" id="setupHint" style="margin-top:10px"></div>
+    <p class="hint" style="margin-top:10px">✅ 設定が終わったら、右上「⚙ 設定」であなたのプロジェクトURLを登録しておくと、次回から「Claude.aiを開く」ボタンで直接そのプロジェクトに飛べます。</p>
   </div>
 
   <div class="foot">
